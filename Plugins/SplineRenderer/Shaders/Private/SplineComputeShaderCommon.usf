@@ -1,0 +1,94 @@
+#include "/Engine/Private/Common.ush"
+#include "ColorSpace.usf"
+#include "TypeConversion.usf"
+
+/*
+SplineComputeShaderUniformParameters
+	float 	WorldSize
+	float 	Width
+	uint32 	NumSides
+*/
+
+struct FSplineControlPointData
+{
+	float3 Position;
+	float Level;
+	float Knot;
+};
+
+struct FSplineSegmentData
+{
+	uint SplineIdx;
+	uint BeginControlPointIdx;
+	uint NumSamples;
+	uint MeshVertexBufferOffset;
+	uint MeshIndexBufferOffset;
+};
+
+struct FSplineData
+{
+	float3 StartPosition;
+	float3 EndPosition;
+	float3 StartColor_HCL;
+	float3 EndColor_HCL;
+	float BundlingStrength;
+	uint BeginControlPointIdx;
+	uint NumControlPoints;
+	uint MeshVertexBufferOffset;
+};
+
+struct FSplineSamplePoint
+{
+	float3 Position;
+	float4 Color_RGBA;
+};
+
+// 	Vert.TangentZ.Vector.W = ProcVert.Tangent.bFlipTangentY ? 0 : 255;
+struct FDynamicMeshVertex		// 32 byte
+{
+	float3 Position;			// float * 3 = 12 byte
+	float2 TextureCoordinate;	// float * 2 = 8 byte
+	uint TangentX;				// uint8 * 4 = 4 byte
+	uint TangentZ;				// uint8 * 4 = 4 byte
+	uint Color;					// uint8 * 4 = 4 byte
+};
+
+StructuredBuffer<FSplineControlPointData> InSplineControlPointData : register(t0);
+StructuredBuffer<FSplineSegmentData> InSplineSegmentData : register(t1);
+StructuredBuffer<FSplineData> InSplineData : register(t2);
+RWByteAddressBuffer OutMeshVertexData : register(u0);
+
+float3 slerp(float3 a, float3 b, float t)
+{
+	/* Accurate
+	precise const float d = clamp(dot(a, b), -1.0, 1.0);
+	precise const float theta = acos(d) * t;
+	precise const float3 relative = normalize(b - a * d);
+	precise float s, c;
+	sincos(theta, s, c);
+	return a * c + relative * s;
+	*/
+
+	/* Fast approximation */
+	return normalize(lerp(a, b, t));
+}
+
+void StoreDynamicMeshVertex(uint VertexIndex,
+							float3 Position,
+							float2 TextureCoordinate,
+							float3 TangentX,
+							float3 TangentZ,
+							float4 Color)
+{
+	const uint Offset = 32 * VertexIndex;
+	OutMeshVertexData.Store3(Offset, 		asuint(Position));
+	OutMeshVertexData.Store2(Offset + 12, 	asuint(TextureCoordinate));
+	OutMeshVertexData.Store (Offset + 20, 	ToPackedNormal(TangentX));
+	OutMeshVertexData.Store (Offset + 24, 	ToPackedNormal(TangentZ, 0));
+	OutMeshVertexData.Store (Offset + 28, 	ToPackedColor(Color));
+}
+
+float Coeff(float Kn, float K, float Alpha)
+{
+	return (Alpha - K) / (Kn - K);
+}

@@ -1,0 +1,129 @@
+#include "/Engine/Private/Common.ush"
+
+float3 HUEtoRGB(in float H)
+{
+	float R = abs(H * 6 - 3) - 1;
+	float G = 2 - abs(H * 6 - 2);
+	float B = 2 - abs(H * 6 - 4);
+	return saturate(float3(R, G, B));
+}
+
+float3 HSLtoRGB(in float3 HSL)
+{
+	float3 RGB = HUEtoRGB(HSL.x);
+	float C = (1 - abs(2 * HSL.z - 1)) * HSL.y;
+	return (RGB - 0.5) * C + HSL.z;
+}
+
+static const float HCLgamma = 3;
+static const float HCLy0 = 100;
+static const float HCLmaxL = 0.530454533953517; // == exp(HCLgamma / HCLy0) - 0.5
+
+float3 HCLtoRGB(float3 HCL)
+{
+	float3 RGB = 0;
+	if (HCL.z != 0)
+	{
+		float H = HCL.x;
+		float C = HCL.y;
+		float L = HCL.z * HCLmaxL;
+		float Q = exp((1 - C / (2 * L)) * (HCLgamma / HCLy0));
+		float U = (2 * L - C) / (2 * Q - 1);
+		float V = C / Q;
+		float T = tan((H + min(frac(2 * H) / 4, frac(-2 * H) / 8)) * PI * 2);
+		H *= 6;
+		if (H <= 1)
+		{
+			RGB.r = 1;
+			RGB.g = T / (1 + T);
+		}
+		else if (H <= 2)
+		{
+			RGB.r = (1 + T) / T;
+			RGB.g = 1;
+		}
+		else if (H <= 3)
+		{
+			RGB.g = 1;
+			RGB.b = 1 + T;
+		}
+		else if (H <= 4)
+		{
+			RGB.g = 1 / (1 + T);
+			RGB.b = 1;
+		}
+		else if (H <= 5)
+		{
+			RGB.r = -1 / T;
+			RGB.b = 1;
+		}
+		else
+		{
+			RGB.r = 1;
+			RGB.b = -T;
+		}
+		RGB = RGB * V + U;
+	}
+	return RGB;
+}
+
+float3 RGBtoHCL(float3 RGB)
+{
+	float3 HCL;
+	float H = 0;
+	float U = min(RGB.r, min(RGB.g, RGB.b));
+	float V = max(RGB.r, max(RGB.g, RGB.b));
+	float Q = HCLgamma / HCLy0;
+	HCL.y = V - U;
+	if (HCL.y != 0)
+	{
+		H = atan2(RGB.g - RGB.b, RGB.r - RGB.g) / PI;
+		Q *= U / V;
+	}
+	Q = exp(Q);
+	HCL.x = frac(H / 2 - min(frac(H), frac(-H)) / 6);
+	HCL.y *= Q;
+	HCL.z = lerp(-U, V, Q) / (HCLmaxL * 2);
+	return HCL;
+}
+
+float3 LerpHCL(float3 A, float3 B, float Alpha)
+{
+	float AH = A.x;
+	float AC = A.y;
+	float AL = A.z;
+
+	float BH = B.x - AH;
+	float BC = B.y - AC;
+	float BL = B.z - AL;
+
+	if (isnan(BC))
+	{
+		BC = 0;
+
+		if (isnan(AC))
+		{
+			AC = B.y;
+		}
+	}
+
+	if (isnan(BH))
+	{
+		BH = 0;
+
+		if (isnan(AH))
+		{
+			AH = B.x;
+		}
+	}
+	/*else if (BH > 0.5)
+	{
+		BH -= 1.0;
+	}
+	else if (BH < -0.5)
+	{
+		BH += 1.0;
+	}*/
+
+	return float3(AH, AC, AL) + float3(BH, BC, BL) * Alpha;
+}

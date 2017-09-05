@@ -1,0 +1,19 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+Standard: Cpp11
+IndentWidth: 4
+AccessModifierOffset: -4
+PointerAlignment: Left
+DerivePointerAlignment: false
+BreakBeforeBraces: Allman
+TabWidth: 4
+UseTab: Always
+ConstructorInitializerIndentWidth: 4
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: false
+ColumnLimit: 100

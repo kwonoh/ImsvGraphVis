@@ -1,0 +1,121 @@
+#include "SplineComputeShaderCommon.usf"
+
+// Per Segment
+[numthreads(1, 1, 1)]
+void MainCS(
+	uint3 GroupID : SV_GroupID, 					// ID of a thread group within a dispatch.
+	uint3 DispatchThreadID : SV_DispatchThreadID,	// ID of the entire threads
+	uint3 GroupThreadID : SV_GroupThreadID,			// ID of the thread within its own thread group
+	uint GroupIndex : SV_GroupIndex					// flat group index
+	)
+{
+	const uint SegmentIdx = GroupID.x;
+	const FSplineSegmentData SegmentData = InSplineSegmentData[SegmentIdx];
+	const FSplineData SplineData = InSplineData[SegmentData.SplineIdx];
+
+	// Spline
+	const int NumSides = SplineComputeShaderUniformParameters.NumSides;
+	const float BundlingStrength = SplineData.BundlingStrength;
+
+	const float3 StartPosition = SplineData.StartPosition;
+	const float3 EndPosition = SplineData.EndPosition;
+	const float3 StartColor = SplineData.StartColor_HCL;
+	const float3 EndColor = SplineData.EndColor_HCL;
+
+	// Segment
+	const uint NumSamples = SegmentData.NumSamples;
+	const uint BeginControlPointIdx = SegmentData.BeginControlPointIdx;
+	const float BeginControlKnot = InSplineControlPointData[BeginControlPointIdx + 2].Knot;
+	const float EndControlKnot = InSplineControlPointData[BeginControlPointIdx + 3].Knot;
+
+	const float K5 = InSplineControlPointData[BeginControlPointIdx + 5].Knot;
+	const float K4 = InSplineControlPointData[BeginControlPointIdx + 4].Knot;
+	const float K3 = InSplineControlPointData[BeginControlPointIdx + 3].Knot;
+	const float K2 = InSplineControlPointData[BeginControlPointIdx + 2].Knot;
+	const float K1 = InSplineControlPointData[BeginControlPointIdx + 1].Knot;
+	const float K0 = InSplineControlPointData[BeginControlPointIdx    ].Knot;
+
+	const float3 CP3 = InSplineControlPointData[BeginControlPointIdx + 3].Position;
+	const float3 CP2 = InSplineControlPointData[BeginControlPointIdx + 2].Position;
+	const float3 CP1 = InSplineControlPointData[BeginControlPointIdx + 1].Position;
+	const float3 CP0 = InSplineControlPointData[BeginControlPointIdx    ].Position;
+
+	// Edge bundling strength.
+	const float3 P3 = slerp(slerp(StartPosition, EndPosition, K3), CP3, BundlingStrength);
+	const float3 P2 = slerp(slerp(StartPosition, EndPosition, K2), CP2, BundlingStrength);
+	const float3 P1 = slerp(slerp(StartPosition, EndPosition, K1), CP1, BundlingStrength);
+	const float3 P0 = slerp(slerp(StartPosition, EndPosition, K0), CP0, BundlingStrength);
+
+	// Levels
+	const float3 L3 = InSplineControlPointData[BeginControlPointIdx + 3].Level;
+	const float3 L2 = InSplineControlPointData[BeginControlPointIdx + 2].Level;
+	const float3 L1 = InSplineControlPointData[BeginControlPointIdx + 1].Level;
+	const float3 L0 = InSplineControlPointData[BeginControlPointIdx    ].Level;
+
+	// Compute Sample Points
+	FSplineSamplePoint Sample[SPLINE_COMPUTE_SHADER_MAX_SAMPLES_PER_SEGMENT];
+	// [unroll]
+	for (int SampleIdx = 0; SampleIdx < NumSamples; SampleIdx++)
+	{
+		const float LocalAlpha = float(SampleIdx) / float(NumSamples - 1); // 0 to 1
+		const float Alpha = lerp(BeginControlKnot, EndControlKnot, LocalAlpha);
+
+		const float3 P23 = slerp(P2, P3, Coeff(K5, K2, Alpha));
+		const float3 P12 = slerp(P1, P2, Coeff(K4, K1, Alpha));
+		const float3 P01 = slerp(P0, P1, Coeff(K3, K0, Alpha));
+
+		const float3 P123 = slerp(P12, P23, Coeff(K4, K2, Alpha));
+		const float3 P012 = slerp(P01, P12, Coeff(K3, K1, Alpha));
+
+		const float3 L23 = lerp(L2, L3, Coeff(K5, K2, Alpha));
+		const float3 L12 = lerp(L1, L2, Coeff(K4, K1, Alpha));
+		const float3 L01 = lerp(L0, L1, Coeff(K3, K0, Alpha));
+
+		const float3 L123 = lerp(L12, L23, Coeff(K4, K2, Alpha));
+		const float3 L012 = lerp(L01, L12, Coeff(K3, K1, Alpha));
+
+		const float Knot = Coeff(K3, K2, Alpha);
+
+		Sample[SampleIdx].Position = slerp(P012, P123, Knot) * lerp(L012, L123, Knot);
+		Sample[SampleIdx].Color_RGBA = float4(HCLtoRGB(LerpHCL(StartColor, EndColor, Alpha)), 1.0);
+	}
+
+	// Compute Mesh Vertices
+	const float SplineWidth = SplineComputeShaderUniformParameters.Width;
+	const float WorldSize = SplineComputeShaderUniformParameters.WorldSize;
+	const int MeshVertexBufferOffset = SegmentData.MeshVertexBufferOffset;
+
+	// [unroll]
+	for (int SampleIdx = 0; SampleIdx < NumSamples; SampleIdx++)
+	{
+		const float LocalAlpha = float(SampleIdx) / float(NumSamples - 1); // 0 to 1
+		const float Alpha = lerp(BeginControlKnot, EndControlKnot, LocalAlpha);
+
+		const int PrevSampleIdx = max(0, SampleIdx - 1);
+		const int NextSampleIdx = min(NumSamples - 1, SampleIdx + 1);
+
+		const float3 NextSamplePosition = Sample[NextSampleIdx].Position;
+		const float3 PrevSamplePosition = Sample[PrevSampleIdx].Position;
+
+		const float3 Forward = normalize(NextSamplePosition - PrevSamplePosition);
+		const float3 TowardCenter = -normalize(NextSamplePosition + PrevSamplePosition);
+		/*const float3 WorldUp = float3(0, 0, 1);*/
+		const float3 Right = normalize(cross(TowardCenter, Forward));
+		const float3 Up = normalize(cross(Forward, Right));
+
+		for (int SideIdx = 0; SideIdx < NumSides; SideIdx++)
+		{
+			const float AroundFrac = float(SideIdx) / float(NumSides);
+			const float theta = 2.0 * PI * AroundFrac;
+			const float3 Outside = cos(theta) * Up + sin(theta) * Right;
+			StoreDynamicMeshVertex(
+				MeshVertexBufferOffset + NumSides * SampleIdx + SideIdx,
+				WorldSize * Sample[SampleIdx].Position + Outside * SplineWidth,
+				float2(Alpha, AroundFrac),
+				Forward,
+				Outside,
+				Sample[SampleIdx].Color_RGBA
+				);
+		}
+	}
+}

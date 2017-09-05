@@ -1,0 +1,21 @@
+{
+    "FileVersion" : 3,
+    "FriendlyName" : "SplineRenderer",
+    "Version" : 1,
+    "VersionName" : "1.0",
+    "CreatedBy" : "Oh-Hyun Kwon",
+    "CreatedByURL" : "http://kwonoh.net",
+    "EngineVersion" : "4.17.0",
+    "Description" : "SplineRenderer",
+    "Category" : "Library",
+    "EnabledByDefault" : true,
+
+    "Modules" :
+    [
+        {
+            "Name" : "SplineRenderer",
+            "Type" : "Runtime",
+			"LoadingPhase" : "PostConfigInit"
+        }
+    ]
+}
