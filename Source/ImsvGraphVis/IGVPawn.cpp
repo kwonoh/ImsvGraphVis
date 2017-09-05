@@ -13,6 +13,7 @@
 AIGVPawn::AIGVPawn() : CursorDistanceScale(0.4)
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
 
 	BaseEyeHeight = 0.0f;
 
@@ -55,6 +56,8 @@ void AIGVPawn::BeginPlay()
 void AIGVPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	UpdateCursor();
 }
 
 void AIGVPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -74,7 +77,6 @@ void AIGVPawn::AddControllerYawInput(float Value)
 	if (PlayerController)
 	{
 		PickRayRotation.Yaw += Value * PlayerController->InputYawScale;
-		UpdateCursor();
 	}
 }
 
@@ -84,7 +86,6 @@ void AIGVPawn::AddControllerPitchInput(float Value)
 	if (PlayerController)
 	{
 		PickRayRotation.Pitch += -Value * PlayerController->InputPitchScale;
-		UpdateCursor();
 	}
 }
 
