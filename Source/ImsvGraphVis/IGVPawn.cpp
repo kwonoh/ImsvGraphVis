@@ -100,6 +100,23 @@ void AIGVPawn::UpdateCursor()
 
 	CursorMeshComponent->SetWorldLocation(CursorWorldPosition);
 	CursorMeshComponent->SetWorldRotation(PickRayRotation);
+
+	if ((GetViewRotation().Vector() | PickRayDirection) < 0.76604444311 /* cos 40 deg */)
+	{
+		CursorDirectionIndicatorMeshComponent->SetVisibility(true);
+		FVector const RelativeDirection = CameraComponent->GetComponentTransform()
+											  .InverseTransformVectorNoScale(PickRayDirection)
+											  .GetSafeNormal();
+		FVector const TargetDirection =
+			FVector(0, RelativeDirection.Y, RelativeDirection.Z).GetSafeNormal();
+		CursorDirectionIndicatorMeshComponent->SetRelativeLocation(FVector(200, 0, 0) +
+																   TargetDirection * 85);
+		CursorDirectionIndicatorMeshComponent->SetRelativeRotation(TargetDirection.Rotation());
+	}
+	else
+	{
+		CursorDirectionIndicatorMeshComponent->SetVisibility(false);
+	}
 }
 
 void AIGVPawn::OnLeftMouseButtonReleased()
