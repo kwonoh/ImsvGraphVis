@@ -70,3 +70,6 @@ python main.py data/lesmis.json -r 1.0
 ```
 The `-r` parameter will change the size of resulting clustering hierarchy.
 Output data will be saved in [`/Saved/Data/Graph`](Saved/Data/Graph) directory.
+
+## Acknowledgement
+This research has been sponsored by the U.S. National Science Foundation through grant IIS-1741536: Critical Visualization Technologies for Analyzing and Understanding Big Network Data.
