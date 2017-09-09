@@ -1,5 +1,6 @@
 # Immersive Graph Visualization
 An implementation of the immersive graph visualization technique described in [our paper](https://goo.gl/MpZFBp):
+
 ```bibtex
 @article{kwon16imsv,
     title={{A Study of Layout, Rendering, and Interaction Methods for Immersive Graph Visualization}},
@@ -11,6 +12,8 @@ An implementation of the immersive graph visualization technique described in [o
     pages={1802-1815}
 }
 ```
+Oh-Hyun Kwon, Chris Muelder, and Kwan-Liu Ma are with [VIDI Labs](http://vidi.cs.ucdavis.edu/) at the University of California, Davis.
+Kyungwon Lee is with Integrated Design Lab at the Ajou University, Korea.
 
 ## Requirements
 - Main application
