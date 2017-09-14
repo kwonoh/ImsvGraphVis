@@ -1,4 +1,7 @@
 # Immersive Graph Visualization
+
+![Teaser](http://kwonoh.net/resource/images/imsv-graph-vis.jpg)
+
 An implementation of the immersive graph visualization technique described in [our paper](https://goo.gl/MpZFBp):
 
 ```bibtex
