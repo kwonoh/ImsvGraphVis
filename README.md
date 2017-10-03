@@ -50,7 +50,6 @@ Kyungwon Lee is with Integrated Design Lab at the Ajou University, Korea.
 |`IGV_SetFieldOfView [float]`    | Set the field of view of graph layout. The value should be determined based on the size of given graph. |
 |`IGV_SetAspectRatio [float]`    | Set the aspect ratio of graph layout. |
 |`IGV_SetTreemapNesting [float]` | Set the nesting factor of treemap layout. |
-|`IGV_SetHalo [bool]`            | Reset the  viewpoint. |
 
 To add more console commands, see `AIGVPlayerController`.
 
