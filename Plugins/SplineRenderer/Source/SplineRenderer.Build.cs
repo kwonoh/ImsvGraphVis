@@ -10,7 +10,7 @@ namespace UnrealBuildTool.Rules
             get { return Path.GetFullPath(Path.Combine(ModuleDirectory, "../ThirdParty/")); }
         }
 
-        public SplineRenderer(TargetInfo Target)
+        public SplineRenderer(ReadOnlyTargetRules Target)
         {
             PublicIncludePaths.AddRange(new string[] {
                 });
