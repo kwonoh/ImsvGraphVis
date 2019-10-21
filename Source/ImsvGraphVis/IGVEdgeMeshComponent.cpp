@@ -24,8 +24,8 @@ UIGVEdgeMeshComponent::UIGVEdgeMeshComponent()
 	  SplineControlPointData(),
 	  SplineSegmentData(),
 	  SplineData(),
-	  NumMeshVertices(0),
 	  NumMeshIndices(0),
+	  NumMeshVertices(0),
 	  MeshIndices(),
 	  MaterialInstance(nullptr)
 {

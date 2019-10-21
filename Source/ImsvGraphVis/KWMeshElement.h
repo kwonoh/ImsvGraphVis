@@ -176,7 +176,8 @@ public:
 class FMeshVertexFactory : public FLocalVertexFactory
 {
 public:
-	FMeshVertexFactory()
+	FMeshVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FLocalVertexFactory(InFeatureLevel, "FMeshVertexFactory")
 	{
 	}
 
@@ -205,10 +206,13 @@ public:
 		}
 		else
 		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-				InitMeshVertexFactory, FMeshVertexFactory*, VertexFactory, this,
-				const FVertexBuffer*, VertexBuffer, VertexBuffer,
-				{ VertexFactory->Init_RenderThread(VertexBuffer); });
+			FMeshVertexFactory* VertexFactory = this;
+			ENQUEUE_RENDER_COMMAND(InitMeshVertexFactory)(
+						[VertexBuffer, VertexFactory](FRHICommandListImmediate& RHICmdList)
+			{
+				(void)RHICmdList;
+				VertexFactory->Init_RenderThread(VertexBuffer);
+			});
 		}
 	}
 };
@@ -240,6 +244,7 @@ public:
 		  BufferUsage(InBufferUsage),
 		  VertexBuffer(Vertices, BufferUsage),
 		  IndexBuffer(Indices, BufferUsage),
+		  VertexFactory(ERHIFeatureLevel::ES3_1),
 		  Material(Component->GetMaterial(0)),
 		  MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 	{
@@ -262,8 +267,10 @@ public:
 
 	virtual void OnTransformChanged() override
 	{
+		FBoxSphereBounds PreSkinnedLocalBounds;
+		GetPreSkinnedLocalBounds(PreSkinnedLocalBounds);
 		PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(
-			GetLocalToWorld(), GetBounds(), GetLocalBounds(), true, UseEditorDepthTest());
+			GetLocalToWorld(), GetBounds(), GetLocalBounds(), PreSkinnedLocalBounds, ReceivesDecals(), DrawsVelocity(), LpvBiasMultiplier);
 	}
 
 	virtual bool CanBeOccluded() const override

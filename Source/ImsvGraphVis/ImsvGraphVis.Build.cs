@@ -20,7 +20,6 @@ public class ImsvGraphVis : ModuleRules
 			"RenderCore",
 			"Renderer",
 			"RHI",
-			"ShaderCore",
 			"SplineRenderer",
 			"Slate",
 			"SlateCore"

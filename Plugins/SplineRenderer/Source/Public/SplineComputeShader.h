@@ -7,11 +7,11 @@
 #include "UniformBuffer.h"
 
 // DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, Degree)
-BEGIN_UNIFORM_BUFFER_STRUCT(FSplineComputeShaderUniformParameters, )
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, WorldSize)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, Width)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, NumSides)
-END_UNIFORM_BUFFER_STRUCT(FSplineComputeShaderUniformParameters)
+BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT(FSplineComputeShaderUniformParameters, )
+SHADER_PARAMETER(float, WorldSize)
+SHADER_PARAMETER(float, Width)
+SHADER_PARAMETER(uint32, NumSides)
+END_GLOBAL_SHADER_PARAMETER_STRUCT()
 
 typedef TUniformBufferRef<FSplineComputeShaderUniformParameters>
 	FSplineComputeShaderUniformParametersRef;
@@ -31,10 +31,10 @@ public:
 		return RHISupportsComputeShaders(Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform,
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters,
 											 FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SPLINE_COMPUTE_SHADER_MAX_SAMPLES_PER_SEGMENT"), 64);
 	}
 
@@ -78,4 +78,8 @@ public:
 
 	explicit FSplineComputeShader_Sphere(
 		ShaderMetaType::CompiledShaderInitializerType const& Initializer);
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& PermutationParams) {
+		return true;
+	}
 };
