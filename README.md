@@ -26,7 +26,7 @@ Kyungwon Lee is with Integrated Design Lab at the Ajou University, Korea.
         - [Unreal Engine API Reference](https://docs.unrealengine.com/latest/INT/API/index.html)
         - [Engine source and GitHub on the Unreal Engine forums](https://forums.unrealengine.com/forumdisplay.php?1-Development-Discussion)
     - Oculus Rift (CV1)
-        - This application is designed for a seated environment with a keyboard and a mouse. This application does not use positional tracking and Oculus Touch. Find more details in [our paper](https://goo.gl/MpZFBp).
+        - This application is designed for a seated environment with a keyboard and a mouse. This application does not use positional tracking and Oculus Touch. Find more details in [our paper](http://kwonoh.net/resource/papers/kwon_tvcg2016.pdf).
         - HTC Vive is not tested yet.
 - Data preprocessing ([`/Preprocess`](Preprocess))
     - [networkx 1.11](https://networkx.github.io/)
