@@ -2,7 +2,7 @@
 
 ![Teaser](http://kwonoh.net/resource/images/imsv-graph-vis.jpg)
 
-An implementation of the immersive graph visualization technique described in [our paper](http://kwonoh.net/resource/papers/kwon_tvcg2016.pdf):
+An implementation of the immersive graph visualization technique described in [our paper](http://kwonoh.net/resource/papers/kwon_tvcg2016.pdf) ([video preview](https://www.youtube.com/watch?v=LQYamaU8OvA)):
 
 ```bibtex
 @article{kwon16imsv,
