@@ -29,10 +29,13 @@ void FIGVEdgeMeshVertexFactory::Init(FVertexBuffer* VertexBuffer)
 	}
 	else
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			InitMeshVertexFactory, FIGVEdgeMeshVertexFactory*, VertexFactory, this,
-			const FVertexBuffer*, VertexBuffer, VertexBuffer,
-			{ VertexFactory->Init_RenderThread(VertexBuffer); });
+		FIGVEdgeMeshVertexFactory* VertexFactory = this;
+		ENQUEUE_RENDER_COMMAND(InitMeshVertexFactory)(
+					[VertexBuffer, VertexFactory](FRHICommandListImmediate& RHICmdList)
+		{
+			(void)RHICmdList;
+			VertexFactory->Init_RenderThread(VertexBuffer);
+		});
 	}
 }
 
@@ -87,11 +90,12 @@ FIGVEdgeMeshSceneProxy::FIGVEdgeMeshSceneProxy(UIGVEdgeMeshComponent* const Comp
 
 	  VertexBuffer(Component->NumMeshVertices),
 	  IndexBuffer(Component->MeshIndices),
+	  VertexFactory(ERHIFeatureLevel::SM5),
 
 	  Material(Component->GetMaterial(0)),
 	  MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel())),
 	  WireframeMaterial(GEngine->WireframeMaterial
-							? GEngine->WireframeMaterial->GetRenderProxy(IsSelected())
+							? GEngine->WireframeMaterial->GetRenderProxy()
 							: nullptr,
 						FLinearColor::White)
 {
@@ -114,8 +118,10 @@ FIGVEdgeMeshSceneProxy::FIGVEdgeMeshSceneProxy(UIGVEdgeMeshComponent* const Comp
 
 void FIGVEdgeMeshSceneProxy::OnTransformChanged()
 {
+	FBoxSphereBounds PreSkinnedLocalBounds;
+	GetPreSkinnedLocalBounds(PreSkinnedLocalBounds);
 	PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(
-		GetLocalToWorld(), GetBounds(), GetLocalBounds(), true, UseEditorDepthTest());
+		GetLocalToWorld(), GetBounds(), GetLocalBounds(), PreSkinnedLocalBounds, ReceivesDecals(), DrawsVelocity(), LpvBiasMultiplier);
 }
 
 bool FIGVEdgeMeshSceneProxy::CanBeOccluded() const
@@ -142,9 +148,13 @@ void FIGVEdgeMeshSceneProxy::SendRenderDynamicData()
 	// TODO: is this required code?
 	IndexBuffer.Indices = IGVEdgeMeshComponent->MeshIndices;
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(FSendIGVEdgeMeshSceneProxyDynamicData,
-											   FIGVEdgeMeshSceneProxy&, Self, *this,
-											   { Self.SendRenderDynamicData_RenderThread(); });
+	FIGVEdgeMeshSceneProxy* Self = this;
+	ENQUEUE_RENDER_COMMAND(InitMeshVertexFactory)(
+				[Self](FRHICommandListImmediate& RHICmdList)
+	{
+		(void)RHICmdList;
+		Self->SendRenderDynamicData_RenderThread();
+	});
 
 	ComputeMesh();
 }
@@ -228,7 +238,7 @@ void FIGVEdgeMeshSceneProxy::SetMesh(FMeshBatch& Mesh, bool const bWireframe) co
 	Mesh.bWireframe = bWireframe;
 	Mesh.VertexFactory = &VertexFactory;
 	Mesh.MaterialRenderProxy =
-		!bWireframe ? Material->GetRenderProxy(IsSelected()) : &WireframeMaterial;
+		!bWireframe ? Material->GetRenderProxy() : &WireframeMaterial;
 }
 
 int32 FIGVEdgeMeshSceneProxy::SetMeshBatchElements(FMeshBatch& Mesh, bool const bWireframe) const
@@ -293,6 +303,11 @@ void FIGVEdgeMeshSceneProxy::SetMeshBatchElement(FMeshBatchElement& BatchElement
 	BatchElement.MinVertexIndex = MeshData->VertexBufferOffset[RenderGroup];
 	BatchElement.MaxVertexIndex =
 		MeshData->VertexBufferOffset[RenderGroup] + MeshData->VertexBufferSize[RenderGroup] - 1;
+}
+
+SIZE_T FIGVEdgeMeshSceneProxy::GetTypeHash() const {
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
 }
 
 void FIGVEdgeMeshSceneProxy::ReleaseBuffers()
@@ -385,8 +400,13 @@ void FIGVEdgeMeshSceneProxy::ComputeMesh()
 	SplineComputeShaderUniformParameters.Width = GraphActor->EdgeWidth * 0.5;
 	SplineComputeShaderUniformParameters.NumSides = GraphActor->EdgeNumSides;
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(FSendIGVEdgeMeshDynamicData, FIGVEdgeMeshSceneProxy&,
-											   Self, *this, { Self.ComputeMesh_RenderThread(); });
+	FIGVEdgeMeshSceneProxy* Self = this;
+	ENQUEUE_RENDER_COMMAND(FSendIGVEdgeMeshDynamicData)(
+				[Self](FRHICommandListImmediate& RHICmdList)
+	{
+		(void)RHICmdList;
+		Self->ComputeMesh_RenderThread();
+	});
 }
 
 void FIGVEdgeMeshSceneProxy::ComputeMesh_RenderThread()

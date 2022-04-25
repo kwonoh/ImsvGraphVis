@@ -7,8 +7,8 @@
 #include "ShaderParameters.h"
 #include "UniformBuffer.h"
 
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FSplineComputeShaderUniformParameters,
-								TEXT("SplineComputeShaderUniformParameters"))
+IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT(FSplineComputeShaderUniformParameters,
+									"SplineComputeShaderUniformParameters");
 
 FBaseSplineComputeShader::FBaseSplineComputeShader(
 	ShaderMetaType::CompiledShaderInitializerType const& Initializer)

@@ -20,6 +20,11 @@ public:
 class IMSVGRAPHVIS_API FIGVEdgeMeshVertexFactory : public FLocalVertexFactory
 {
 public:
+	FIGVEdgeMeshVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FLocalVertexFactory(InFeatureLevel, "FIGVEdgeMeshVertexFactory")
+	{
+	}
+
 	void Init(FVertexBuffer* VertexBuffer);
 	void Init_RenderThread(const FVertexBuffer* VertexBuffer);
 };
@@ -83,6 +88,8 @@ public:
 	int32 SetMeshBatchElements(FMeshBatch& Mesh, bool const bWireframe) const;
 	void SetMeshBatchElement(FMeshBatchElement& BatchElement,
 							 FIGVEdgeMeshData* const MeshData) const;
+
+	virtual SIZE_T GetTypeHash() const override;
 
 private:
 	void ReleaseBuffers();
